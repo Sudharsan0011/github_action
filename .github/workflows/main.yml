@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: "public.ecr.aws/b4h3v1j9/netflix"
+  ECR_REPOSITORY: "149142082303.dkr.ecr.ap-south-1.amazonaws.com/netflix"
   IMAGE_TAG: "${{ github.run_number }}"
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Login to Amazon ECR
         run: |
           set -e
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/b4h3v1j9
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 149142082303.dkr.ecr.ap-south-1.amazonaws.com
 
       - name: Build Docker Image
         run: |
@@ -30,3 +30,4 @@ jobs:
       - name: Push Image to ECR
         run: |
           docker push "${ECR_REPOSITORY}:${IMAGE_TAG}"
+
