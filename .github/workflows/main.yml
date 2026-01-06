@@ -1,15 +1,14 @@
 name: Build & Push to Amazon ECR Public
-
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
   PUBLIC_ECR_REPO: "public.ecr.aws/y5h2u1j4/github_action_nginx"
-  IMAGE_TAG: "latest" # or use ${{ github.run_number }} for unique tags
+  IMAGE_TAG: "${{ github.run_number }}"
 
 jobs:
   build:
@@ -26,18 +25,14 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          sudo docker build -t github_action_nginx .
-
-      - name: Tag Docker Image
-        run: |
-          sudo docker tag github_action_nginx:latest "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
+          docker build -t  "${PUBLIC_ECR_REPO}:${IMAGE_TAG}" .
 
       - name: Push Image to ECR Public
         run: |
-          sudo docker push "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
+          docker push "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
 
       - name: Stop old container and run new one
         run: |
-          sudo docker ps -aq -f name=sairam | xargs -r docker stop
-          sudo docker ps -aq -f name=sairam | xargs -r docker rm
-          sudo docker run -d --name sairam "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
+          docker ps -aq -f name=sairam | xargs -r docker stop
+          docker ps -aq -f name=sairam | xargs -r docker rm
+          docker run --rm -dit --name sairam --publish 8000:80 "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
