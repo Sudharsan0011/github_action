@@ -1,4 +1,5 @@
-name: Build & Push Netflix Image to ECR
+name: Build & Push to Amazon ECR Public
+
 on:
   push:
     branches:
@@ -6,32 +7,37 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: ap-south-1
-  ECR_REPOSITORY: "149142082303.dkr.ecr.ap-south-1.amazonaws.com/netflix"
-  IMAGE_TAG: "${{ github.run_number }}"
+  AWS_REGION: us-east-1
+  PUBLIC_ECR_REPO: "public.ecr.aws/y5h2u1j4/github_action_nginx"
+  IMAGE_TAG: "latest" # or use ${{ github.run_number }} for unique tags
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: [ self-hosted, dev]
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR Public
         run: |
-          set -e
-          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 149142082303.dkr.ecr.ap-south-1.amazonaws.com
+          aws ecr-public get-login-password --region "${AWS_REGION}" \
+          | docker login --username AWS --password-stdin public.ecr.aws/y5h2u1j4
 
       - name: Build Docker Image
         run: |
-          docker build --no-cache -t "${ECR_REPOSITORY}:${IMAGE_TAG}" .
+          docker build -t github_action_nginx .
 
-      - name: Push Image to ECR
+      - name: Tag Docker Image
         run: |
-          docker push "${ECR_REPOSITORY}:${IMAGE_TAG}"
+          docker tag github_action_nginx:latest "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
 
-      - name: Pull and run
+      - name: Push Image to ECR Public
         run: |
-          docker run -dit "${ECR_REPOSITORY}:${IMAGE_TAG}"
+          docker push "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
 
+      - name: Stop old container and run new one
+        run: |
+          docker ps -aq -f name=sairam | xargs -r docker stop
+          docker ps -aq -f name=sairam | xargs -r docker rm
+          docker run -d --name sairam "${PUBLIC_ECR_REPO}:${IMAGE_TAG}"
